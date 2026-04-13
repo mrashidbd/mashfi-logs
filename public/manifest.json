@@ -1,0 +1,20 @@
+{
+    "name": "TimberLog Verify",
+    "short_name": "TimberLog",
+    "start_url": "/surveyor/dashboard",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#64748B",
+    "icons": [
+        {
+            "src": "https://ui-avatars.com/api/?name=TL&background=64748B&color=fff&size=192",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "https://ui-avatars.com/api/?name=TL&background=64748B&color=fff&size=512",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
