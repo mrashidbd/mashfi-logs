@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 
 const props = defineProps({
-    vessels: Array,
+    dailyData: Array,
 });
 </script>
 
@@ -12,36 +12,64 @@ const props = defineProps({
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-slate-800 dark:text-slate-200 leading-tight">
-                My Shipments
-            </h2>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="font-extrabold text-xl text-slate-900 dark:text-white">Daily Unloading Progress</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">View unloading progress by date</p>
+                </div>
+                <Link :href="route('buyer.index')" class="px-5 py-2.5 bg-blue-600 text-white font-bold text-sm rounded-lg hover:bg-blue-700 transition shadow-sm">
+                    View Full Inventory
+                </Link>
+            </div>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div v-if="vessels.length === 0" class="bg-white dark:bg-slate-800 overflow-hidden shadow-sm sm:rounded-lg p-6 text-center text-slate-500">
-                    No active shipments found.
+        <div class="py-8">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                <div v-if="!dailyData || dailyData.length === 0" class="text-center py-20 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-12 mx-auto text-slate-300 dark:text-slate-600 mb-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                    </svg>
+                    <p class="text-slate-500 dark:text-slate-400 font-semibold">No unloading data available yet.</p>
+                    <p class="text-xs text-slate-400 mt-1">Survey results will appear here once logs are inspected.</p>
                 </div>
-                
-                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div v-for="vessel in vessels" :key="vessel.id" class="bg-white dark:bg-slate-800 overflow-hidden shadow-sm rounded-lg hover:shadow-lg transition">
-                        <div class="p-4 sm:p-6">
-                            <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">{{ vessel.vessel_name }}</h3>
-                            <div class="text-sm text-slate-500 mb-4">Arrival: {{ new Date(vessel.arrival_date).toLocaleDateString() }}</div>
-                            
-                            <div class="mb-4">
-                                <div class="flex justify-between text-sm mb-1 text-slate-600 dark:text-slate-400">
-                                    <span>Survey Progress</span>
-                                    <span>{{ vessel.surveyed_logs_count }} / {{ vessel.logs_count }}</span>
+
+                <div class="space-y-6">
+                    <div v-for="day in dailyData" :key="day.date" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
+                        <!-- Date Header -->
+                        <div class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 p-5 flex justify-between items-center">
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">
+                                {{ new Date(day.date).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }) }}
+                            </h3>
+                            <div class="flex items-center gap-4">
+                                <div class="text-right">
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Logs</p>
+                                    <p class="text-lg font-extrabold text-slate-900 dark:text-white">{{ day.total_logs }}</p>
                                 </div>
-                                <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
-                                    <div class="bg-secondary h-2.5 rounded-full" :style="{ width: (vessel.logs_count > 0 ? (vessel.surveyed_logs_count / vessel.logs_count * 100) : 0) + '%' }"></div>
+                                <div class="text-right border-l border-slate-200 dark:border-slate-700 pl-4">
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Volume</p>
+                                    <p class="text-lg font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">{{ parseFloat(day.total_volume).toFixed(3) }} <span class="text-xs font-normal">m³</span></p>
                                 </div>
                             </div>
+                        </div>
 
-                            <Link :href="route('buyer.show', vessel.id)" class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-slate-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-slate-800 uppercase tracking-widest hover:bg-slate-700 dark:hover:bg-white focus:bg-slate-700 dark:focus:bg-white active:bg-slate-900 dark:active:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transition ease-in-out duration-150">
-                                View Report
-                            </Link>
+                        <!-- Simplified Log List -->
+                        <div class="p-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div v-for="log in day.logs.slice(0, 6)" :key="log.id" class="flex items-center justify-between bg-slate-50 dark:bg-slate-700/30 rounded-lg p-3 border border-slate-100 dark:border-slate-700">
+                                    <div>
+                                        <p class="font-mono font-bold text-sm text-slate-900 dark:text-white">{{ log.tag_no }}</p>
+                                        <p class="text-xs text-slate-500 uppercase">{{ log.species }}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-mono font-bold text-sm text-slate-700 dark:text-slate-300">{{ log.vol_cbm }}</p>
+                                        <p class="text-[10px] text-slate-400">CBM</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <p v-if="day.logs.length > 6" class="text-xs text-slate-400 mt-3 text-center">
+                                +{{ day.logs.length - 6 }} more items
+                            </p>
                         </div>
                     </div>
                 </div>

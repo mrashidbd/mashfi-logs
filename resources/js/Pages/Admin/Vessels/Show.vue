@@ -17,6 +17,7 @@ const props = defineProps({
     filters: Object,
     species_list: Array,
     origins_list: Array,
+    buyers_list: Array,
 });
 
 const formattedArrivalDate = computed(() => {
@@ -26,26 +27,25 @@ const formattedArrivalDate = computed(() => {
 });
 
 const search = ref(props.filters.search || '');
-const statusFilter = ref(props.filters.status || '');
 const speciesFilter = ref(props.filters.species || '');
+const originFilter = ref(props.filters.origin || '');
+const buyerFilter = ref(props.filters.buyer || '');
+const surveyStatusFilter = ref(props.filters.survey_status || '');
+const matchStatusFilter = ref(props.filters.match_status || '');
 
-const debouncedSearch = debounce((val) => {
-    router.get(route('vessels.show', props.vessel.id), { 
-        search: val,
-        status: statusFilter.value,
-        species: speciesFilter.value
-    }, { preserveState: true, replace: true });
-}, 300);
-
-watch(search, (val) => debouncedSearch(val));
-
-const updateFilter = () => {
+const applyFilters = () => {
     router.get(route('vessels.show', props.vessel.id), { 
         search: search.value,
-        status: statusFilter.value,
-        species: speciesFilter.value
+        species: speciesFilter.value,
+        origin: originFilter.value,
+        buyer: buyerFilter.value,
+        survey_status: surveyStatusFilter.value,
+        match_status: matchStatusFilter.value,
     }, { preserveState: true, replace: true });
 };
+
+const debouncedSearch = debounce(() => applyFilters(), 300);
+watch(search, () => debouncedSearch());
 
 // --- View Modal Logic ---
 const showViewModal = ref(false);
@@ -190,8 +190,8 @@ const deleteLog = (logId) => {
                             Data Controls
                         </h3>
                     </div>
-                    <div class="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="relative">
+                    <div class="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                        <div class="relative col-span-2 sm:col-span-1">
                             <label class="sr-only">Search</label>
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4 text-slate-400">
@@ -201,22 +201,40 @@ const deleteLog = (logId) => {
                             <input 
                                 v-model="search" 
                                 type="text" 
-                                placeholder="Search SN, Tag, Ref..." 
+                                placeholder="Search LOG# or TAG..." 
                                 class="w-full pl-10 h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono placeholder:text-slate-400 focus:border-slate-800 focus:ring-0 shadow-none transition-colors"
                             >
                         </div>
                         <div>
-                            <select v-model="speciesFilter" @change="updateFilter" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors">
-                                <option value="">ALL SPECIES // DEFAULT</option>
+                            <select v-model="speciesFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors">
+                                <option value="">ALL SPECIES</option>
                                 <option v-for="s in species_list" :key="s" :value="s">{{ s }}</option>
                             </select>
                         </div>
                         <div>
-                            <select v-model="statusFilter" @change="updateFilter" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors uppercase">
-                                <option value="">ALL STATE</option>
-                                <option value="pending">PENDING</option>
-                                <option value="verified">VERIFIED (MATCH)</option>
-                                <option value="mismatch">MISMATCH (WARN)</option>
+                            <select v-model="originFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors">
+                                <option value="">ALL ORIGINS</option>
+                                <option v-for="o in origins_list" :key="o" :value="o">{{ o }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select v-model="buyerFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors">
+                                <option value="">ALL BUYERS</option>
+                                <option v-for="b in buyers_list" :key="b" :value="b">{{ b }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select v-model="surveyStatusFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors uppercase">
+                                <option value="">ALL SURVEY</option>
+                                <option value="surveyed">SURVEYED</option>
+                                <option value="not_surveyed">NOT SURVEYED</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select v-model="matchStatusFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors uppercase">
+                                <option value="">ALL RESULT</option>
+                                <option value="matched">MATCHED</option>
+                                <option value="mismatched">MISMATCHED</option>
                             </select>
                         </div>
                     </div>
@@ -229,44 +247,52 @@ const deleteLog = (logId) => {
                             <thead>
                                 <tr class="bg-slate-50 dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800">
                                     <th class="w-16 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">SN</th>
+                                    <th class="w-20 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Log #</th>
                                     <th class="w-32 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Tag Ref</th>
-                                    <th class="w-auto px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Species</th>
+                                    <th class="w-28 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Species</th>
+                                    <th class="w-28 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Origin</th>
                                     <th class="w-24 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider text-right">Length</th>
                                     <th class="w-24 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider text-right">Dia</th>
                                     <th class="w-28 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider text-right">CBM</th>
+                                    <th class="w-28 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Buyer</th>
                                     <th class="w-28 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider text-center">State</th>
-                                    <th class="w-32 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider text-right">IO</th>
+                                    <th class="w-24 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider text-right">IO</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                                 <tr v-for="log in logs.data" :key="log.id" class="group hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-800 dark:text-slate-300 transition-colors">
                                     <td class="px-4 py-3 text-xs font-mono tracking-tighter">{{ log.serial_no }}</td>
+                                    <td class="px-4 py-3 text-xs font-mono text-slate-500">{{ log.log_no }}</td>
                                     <td class="px-4 py-3 text-sm font-mono font-bold tracking-tighter" :title="log.tag_no">{{ log.tag_no }}</td>
                                     <td class="px-4 py-3 text-sm font-semibold truncate uppercase tracking-wide" :title="log.species">{{ log.species }}</td>
+                                    <td class="px-4 py-3 text-xs font-mono text-slate-500 uppercase truncate" :title="log.origin">{{ log.origin }}</td>
                                     
-                                    <!-- Length Check -->
+                                    <!-- Length with L.REF indicator -->
                                     <td class="px-4 py-3 text-right">
                                         <div class="text-xs font-mono font-semibold">{{ log.length }}</div>
-                                        <div v-if="log.inspection && !log.inspection.is_match" class="text-[10px] font-mono font-bold text-red-500 bg-red-50 dark:bg-red-900/20 mt-1 rounded-sm px-1">
-                                            ACT: {{ log.inspection.actual_length }}
+                                        <div v-if="log.l_ref" class="text-[10px] font-mono font-bold text-red-500 mt-0.5">
+                                            -{{ log.l_ref }}
                                         </div>
                                     </td>
 
-                                    <!-- Dia Check -->
+                                    <!-- Dia with D.REF indicator -->
                                     <td class="px-4 py-3 text-right">
                                         <div class="text-xs font-mono font-semibold">{{ log.diameter }}</div>
-                                        <div v-if="log.inspection && !log.inspection.is_match" class="text-[10px] font-mono font-bold text-red-500 bg-red-50 dark:bg-red-900/20 mt-1 rounded-sm px-1">
-                                            ACT: {{ log.inspection.actual_diameter }}
+                                        <div v-if="log.d_ref" class="text-[10px] font-mono font-bold text-red-500 mt-0.5">
+                                            -{{ log.d_ref }}
                                         </div>
                                     </td>
 
                                     <!-- Volume Check -->
                                     <td class="px-4 py-3 text-right">
                                         <div class="text-xs font-mono font-bold text-slate-900 dark:text-slate-100">{{ log.vol_cbm }}</div>
-                                        <div v-if="log.inspection && !log.inspection.is_match" class="text-[10px] font-mono font-bold text-red-500 bg-red-50 dark:bg-red-900/20 mt-1 rounded-sm px-1">
+                                        <div v-if="log.inspection && !log.inspection.is_match && log.inspection.actual_vol_cbm" class="text-[10px] font-mono font-bold text-red-500 bg-red-50 dark:bg-red-900/20 mt-1 rounded-sm px-1">
                                             ACT: {{ log.inspection.actual_vol_cbm }}
                                         </div>
                                     </td>
+
+                                    <!-- Buyer -->
+                                    <td class="px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-400 truncate" :title="log.buyer_name">{{ log.buyer_name || '-' }}</td>
 
                                     <td class="px-4 py-3 text-center">
                                         <span v-if="!log.inspection" class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold font-mono tracking-widest uppercase rounded border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
@@ -302,7 +328,7 @@ const deleteLog = (logId) => {
                                     </td>
                                 </tr>
                                 <tr v-if="logs.data.length === 0">
-                                    <td colspan="8" class="px-6 py-12 text-center text-sm font-mono text-slate-400 select-none">
+                                    <td colspan="11" class="px-6 py-12 text-center text-sm font-mono text-slate-400 select-none">
                                         > NO DATA MATCHES CURRENT QUERY
                                     </td>
                                 </tr>
@@ -311,7 +337,7 @@ const deleteLog = (logId) => {
                     </div>
                 </div>
 
-                <!-- Mobile Card View (Fragmented Receipt Style) -->
+                <!-- Mobile Card View -->
                 <div class="md:hidden space-y-4">
                     <div v-for="log in logs.data" :key="log.id" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden relative">
                          <!-- Indicator Bar -->
@@ -322,7 +348,7 @@ const deleteLog = (logId) => {
                                 <div>
                                     <p class="text-[10px] uppercase font-mono tracking-widest text-slate-400 mb-0.5">Tag Ref</p>
                                     <h3 class="font-mono font-extrabold text-xl text-slate-900 dark:text-slate-100 tracking-tighter leading-none">{{ log.tag_no }}</h3>
-                                    <p class="text-xs font-mono text-slate-500 mt-1">SN: {{ log.serial_no }}</p>
+                                    <p class="text-xs font-mono text-slate-500 mt-1">SN: {{ log.serial_no }} <span class="mx-1">|</span> Log #: {{ log.log_no || '-' }}</p>
                                 </div>
                                 <div class="text-right">
                                     <span v-if="!log.inspection" class="inline-flex px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold font-mono tracking-widest uppercase rounded">PENDING</span>
@@ -331,36 +357,44 @@ const deleteLog = (logId) => {
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="grid grid-cols-3 gap-3 mb-4">
                                 <div>
                                     <p class="text-[10px] uppercase font-mono tracking-widest text-slate-400 mb-0.5">Species</p>
-                                    <p class="font-bold text-sm text-slate-800 dark:text-slate-200 uppercase">{{ log.species }}</p>
+                                    <p class="font-bold text-sm text-slate-800 dark:text-slate-200 uppercase truncate" :title="log.species">{{ log.species }}</p>
+                                </div>
+                                <div class="truncate">
+                                    <p class="text-[10px] uppercase font-mono tracking-widest text-slate-400 mb-0.5">Origin</p>
+                                    <p class="font-bold text-sm text-slate-800 dark:text-slate-200 uppercase truncate" :title="log.origin">{{ log.origin || '-' }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-[10px] uppercase font-mono tracking-widest text-slate-400 mb-0.5">Dims</p>
-                                    <p class="font-bold font-mono text-sm text-slate-800 dark:text-slate-200">{{ log.length }}m × {{ log.diameter }}cm</p>
+                                    <p class="text-[10px] uppercase font-mono tracking-widest text-slate-400 mb-0.5">Buyer</p>
+                                    <p class="font-bold text-sm text-slate-800 dark:text-slate-200 truncate" :title="log.buyer_name">{{ log.buyer_name || '-' }}</p>
                                 </div>
                             </div>
-                            
-                            <!-- Inspection Details block if mismatch -->
-                            <div v-if="log.inspection && !log.inspection.is_match" class="bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/50 p-2 rounded-sm mb-4">
-                                <p class="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-widest mb-1 flex items-center gap-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                                    Surveyor Diff
-                                </p>
-                                <div class="grid grid-cols-3 gap-2 font-mono text-[10px]">
-                                    <div>L: <span class="text-red-600 dark:text-red-400 font-bold">{{ log.inspection.actual_length }}</span></div>
-                                    <div>D: <span class="text-red-600 dark:text-red-400 font-bold">{{ log.inspection.actual_diameter }}</span></div>
-                                    <div>V: <span class="text-red-600 dark:text-red-400 font-bold">{{ log.inspection.actual_vol_cbm }}</span></div>
+
+                            <div class="grid grid-cols-3 gap-3 mb-4">
+                                <div>
+                                    <p class="text-[10px] uppercase font-mono tracking-widest text-slate-400 mb-0.5">Length</p>
+                                    <p class="font-bold font-mono text-sm text-slate-800 dark:text-slate-200">
+                                        {{ log.length }}
+                                        <span v-if="log.l_ref" class="text-red-500 text-[10px] block">-{{ log.l_ref }}</span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] uppercase font-mono tracking-widest text-slate-400 mb-0.5">DIA</p>
+                                    <p class="font-bold font-mono text-sm text-slate-800 dark:text-slate-200">
+                                        {{ log.diameter }}
+                                        <span v-if="log.d_ref" class="text-red-500 text-[10px] block">-{{ log.d_ref }}</span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] uppercase font-mono tracking-widest text-slate-400 mb-0.5">CBM</p>
+                                    <p class="font-extrabold font-mono text-lg text-slate-900 dark:text-white leading-none">{{ log.vol_cbm }}</p>
                                 </div>
                             </div>
 
                             <div class="flex flex-wrap gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                                <div class="mr-auto">
-                                    <p class="text-[10px] uppercase font-mono tracking-widest text-slate-400 mb-0.5">CBM</p>
-                                    <p class="font-extrabold font-mono text-lg text-slate-900 dark:text-white leading-none">{{ log.vol_cbm }}</p>
-                                </div>
-                                <div class="flex items-end gap-1.5">
+                                <div class="flex items-end gap-1.5 ml-auto">
                                     <button @click="openViewModal(log)" class="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-200">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
                                     </button>
@@ -373,10 +407,9 @@ const deleteLog = (logId) => {
                     </div>
                 </div>
 
-                <!-- Pagination (Industrial styling) -->
+                <!-- Pagination -->
                 <div class="mt-6 flex flex-wrap gap-1 justify-center sm:justify-start" v-if="logs.links.length > 3">
                     <template v-for="(link, k) in logs.links" :key="k">
-                        <!-- Removed arbitrary inline flex properties because standard div works -->
                         <div v-if="link.url === null" class="w-10 h-10 flex items-center justify-center text-xs font-mono font-bold text-slate-300 dark:text-slate-600 border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 rounded-sm shadow-sm" v-html="link.label.replace('Previous', '«').replace('Next', '»')" />
                         <Link v-else class="w-10 h-10 flex items-center justify-center text-xs font-mono font-bold border rounded-sm transition-all shadow-sm" :class="{ 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white z-10 scale-105': link.active, 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700': !link.active }" :href="link.url" v-html="link.label.replace('Previous', '«').replace('Next', '»')" />
                     </template>
@@ -391,7 +424,7 @@ const deleteLog = (logId) => {
             @edit="switchToEditFromView"
         />
 
-        <!-- Edit/Add Form Modal (Brutalist style) -->
+        <!-- Edit/Add Form Modal -->
         <Modal :show="showEditModal" @close="closeEditModal" maxWidth="2xl">
             <div class="p-8 dark:bg-slate-900 dark:text-slate-200 border-t-4 border-slate-900 dark:border-white">
                 <h2 class="text-xl font-extrabold uppercase tracking-tight text-slate-900 dark:text-slate-100">

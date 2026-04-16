@@ -12,6 +12,7 @@ class Log extends Model
     protected $fillable = [
         'vessel_id',
         'serial_no',
+        'mark',
         'tag_no',
         'log_no',
         'species',
@@ -23,6 +24,7 @@ class Log extends Model
         'vol_cbm',
         'l_ref',
         'd_ref',
+        'length_after_ref',
         'buyer_name',
         'remarks',
     ];

@@ -1,6 +1,7 @@
 <script setup>
 import Modal from '@/Components/Modal.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import ImageLightbox from '@/Components/ImageLightbox.vue';
 
 const props = defineProps({
     show: Boolean,
@@ -15,12 +16,6 @@ const close = () => {
 
 const edit = () => {
     emit('edit', props.log);
-};
-
-// Image error handling
-const handleImageError = (event) => {
-    event.target.style.display = 'none'; // Hide image if it fails to load
-    // Optionally show a placeholder, but hiding is cleaner for now as per user request implicit implication of "check if exist"
 };
 </script>
 
@@ -69,16 +64,14 @@ const handleImageError = (event) => {
                             <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Log No</p>
                             <p class="text-base font-mono font-semibold text-slate-900 dark:text-slate-100">{{ log.log_no || 'N/A' }}</p>
                         </div>
-                    </div>
-
-                    <div>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Species</p>
-                        <p class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ log.species }}</p>
-                    </div>
-
-                    <div>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Origin</p>
-                        <p class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ log.origin || 'N/A' }}</p>
+                        <div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Species</p>
+                            <p class="text-base font-semibold text-slate-900 dark:text-slate-100 uppercase">{{ log.species }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Origin</p>
+                            <p class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ log.origin || 'N/A' }}</p>
+                        </div>
                     </div>
 
                     <div>
@@ -89,58 +82,66 @@ const handleImageError = (event) => {
 
                 <!-- Measurements Card -->
                 <div class="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
-                    <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-600 pb-2">Measurements</h3>
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-600 pb-2">Original Measurements</h3>
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Length (m)</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Length</p>
                             <p class="text-base font-mono font-bold text-slate-900 dark:text-slate-100">{{ log.length }}</p>
-                            <p v-if="log.inspection && !log.inspection.is_match" class="text-sm font-mono text-red-600 dark:text-red-400 mt-1">
-                                Actual: {{ log.inspection.actual_length }}
-                            </p>
+                            <p v-if="log.l_ref" class="text-sm font-mono text-red-500 mt-0.5">L.REF: -{{ log.l_ref }}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Diameter (cm)</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Diameter</p>
                             <p class="text-base font-mono font-bold text-slate-900 dark:text-slate-100">{{ log.diameter }}</p>
-                            <p v-if="log.inspection && !log.inspection.is_match" class="text-sm font-mono text-red-600 dark:text-red-400 mt-1">
-                                Actual: {{ log.inspection.actual_diameter }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Girth Butt</p>
-                            <p class="text-base font-mono font-semibold text-slate-900 dark:text-slate-100">{{ log.girth_butt }}</p>
-                            <p v-if="log.inspection && !log.inspection.is_match" class="text-sm font-mono text-red-600 dark:text-red-400 mt-1">
-                                Actual: {{ log.inspection.actual_gb }}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Girth Top</p>
-                            <p class="text-base font-mono font-semibold text-slate-900 dark:text-slate-100">{{ log.girth_top }}</p>
-                            <p v-if="log.inspection && !log.inspection.is_match" class="text-sm font-mono text-red-600 dark:text-red-400 mt-1">
-                                Actual: {{ log.inspection.actual_pb }}
-                            </p>
+                            <p v-if="log.d_ref" class="text-sm font-mono text-red-500 mt-0.5">D.REF: -{{ log.d_ref }}</p>
                         </div>
                     </div>
 
                     <div>
                         <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Volume (CBM)</p>
                         <p class="text-lg font-mono font-bold text-slate-900 dark:text-slate-100">{{ log.vol_cbm }}</p>
-                        <p v-if="log.inspection && !log.inspection.is_match" class="text-sm font-mono text-red-600 dark:text-red-400 mt-1">
-                            Actual: {{ log.inspection.actual_vol_cbm }}
-                        </p>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div v-if="log.length_after_ref" class="bg-amber-50 dark:bg-amber-900/20 rounded p-3 border border-amber-200 dark:border-amber-800">
+                        <p class="text-xs text-amber-700 dark:text-amber-400 uppercase tracking-wide font-bold">Calc. Length (after ref)</p>
+                        <p class="text-base font-mono font-bold text-amber-800 dark:text-amber-300">{{ log.length_after_ref }}</p>
+                    </div>
+                </div>
+
+                <!-- Re-measurement Data (Shonatoni) -->
+                <div v-if="log.inspection && !log.inspection.is_match" class="lg:col-span-2 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10 rounded-lg p-5 space-y-4 shadow-sm border border-red-100 dark:border-red-800">
+                    <h3 class="text-lg font-semibold text-red-800 dark:text-red-300 border-b border-red-200 dark:border-red-800 pb-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        Re-measurement (Shonatoni Formula)
+                    </h3>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">L_REF</p>
-                            <p class="text-base font-mono font-semibold text-slate-900 dark:text-slate-100">{{ log.l_ref || 'N/A' }}</p>
+                            <p class="text-xs text-red-600 dark:text-red-400 uppercase tracking-wide font-bold">Length (FT)</p>
+                            <p class="text-base font-mono font-bold text-slate-900 dark:text-slate-100">{{ log.inspection.actual_length_ft || '0' }}'</p>
                         </div>
                         <div>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">D_REF</p>
-                            <p class="text-base font-mono font-semibold text-slate-900 dark:text-slate-100">{{ log.d_ref || 'N/A' }}</p>
+                            <p class="text-xs text-red-600 dark:text-red-400 uppercase tracking-wide font-bold">Length (IN)</p>
+                            <p class="text-base font-mono font-bold text-slate-900 dark:text-slate-100">{{ log.inspection.actual_length_in || '0' }}"</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-red-600 dark:text-red-400 uppercase tracking-wide font-bold">Mid-Girth (IN)</p>
+                            <p class="text-base font-mono font-bold text-slate-900 dark:text-slate-100">{{ log.inspection.actual_mid_girth || '0' }}"</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-lg p-3 border border-red-200 dark:border-red-700">
+                            <p class="text-xs text-red-600 dark:text-red-400 uppercase tracking-wide font-bold">Volume</p>
+                            <div class="flex gap-4 mt-1">
+                                <div>
+                                    <p class="text-[10px] text-slate-500 uppercase">CFT</p>
+                                    <p class="text-lg font-mono font-extrabold text-red-700 dark:text-red-400">{{ log.inspection.actual_vol_cft || '-' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-slate-500 uppercase">CBM</p>
+                                    <p class="text-lg font-mono font-extrabold text-red-700 dark:text-red-400">{{ log.inspection.actual_vol_cbm || '-' }}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -170,34 +171,11 @@ const handleImageError = (event) => {
                     </div>
                 </div>
 
-                <!-- Inspection Images -->
+                <!-- Inspection Images with Lightbox -->
                 <div v-if="log.inspection && log.inspection.images && Object.keys(log.inspection.images).length > 0" class="lg:col-span-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
                     <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-600 pb-2">Inspection Images</h3>
                     
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <template v-for="(url, type) in log.inspection.images" :key="type">
-                             <a 
-                                :href="`/storage/${url}`"
-                                target="_blank"
-                                class="group relative aspect-square rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-600 hover:ring-2 hover:ring-blue-500 transition"
-                            >
-                                <img 
-                                    :src="`/storage/${url}`" 
-                                    :alt="`${type} End Image`"
-                                    class="w-full h-full object-cover group-hover:scale-105 transition"
-                                    @error="handleImageError"
-                                >
-                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
-                                    <div class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded capitalize">
-                                        {{ type }}
-                                    </div>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-8 text-white opacity-0 group-hover:opacity-100 transition">
-                                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
-                                    </svg>
-                                </div>
-                            </a>
-                        </template>
-                    </div>
+                    <ImageLightbox :images="log.inspection.images" />
                 </div>
 
                 <!-- Remarks -->

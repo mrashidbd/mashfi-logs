@@ -6,38 +6,51 @@
     <style>
         body {
             font-family: sans-serif;
-            font-size: 12px;
+            font-size: 10px;
+            color: #333;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 15px;
         }
 
         th,
         td {
             border: 1px solid #ddd;
-            padding: 6px;
+            padding: 5px 6px;
             text-align: left;
         }
 
         th {
             background-color: #f2f2f2;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9px;
+            letter-spacing: 0.5px;
+        }
+
+        .text-right {
+            text-align: right;
         }
 
         .header {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
-        .matched {
-            color: green;
-            font-weight: bold;
+        .header h1 {
+            font-size: 18px;
+            margin: 0 0 10px 0;
         }
 
-        .mismatched {
-            color: red;
-            font-weight: bold;
+        .header p {
+            margin: 3px 0;
+            font-size: 11px;
+        }
+
+        .unloaded {
+            background-color: #f0fdf4;
         }
 
         .footer {
@@ -45,69 +58,78 @@
             bottom: 0;
             width: 100%;
             text-align: center;
-            font-size: 10px;
-            color: #777;
+            font-size: 9px;
+            color: #999;
+            border-top: 1px solid #eee;
+            padding-top: 5px;
+        }
+
+        .summary {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+        }
+
+        .summary td {
+            border: none;
+            font-weight: bold;
         }
     </style>
 </head>
 
 <body>
     <div class="header">
-        <h1>Shipment Inspection Report</h1>
+        <h1>Shipment Inventory Report</h1>
         <p><strong>Shipment:</strong> {{ $vessel->vessel_name ?? 'N/A' }}</p>
-        <p><strong>Arrival Date:</strong> {{ $vessel->arrival_date ? $vessel->arrival_date->format('Y-m-d') : 'N/A' }}</p>
-        <p><strong>Generated:</strong> {{ now()->format('Y-m-d H:i') }}</p>
+        <p><strong>Buyer:</strong> {{ $buyerName ?? 'N/A' }}</p>
+        <p><strong>Arrival Date:</strong> {{ $vessel->arrival_date ? $vessel->arrival_date->format('d M Y') : 'N/A' }}</p>
+        <p><strong>Generated:</strong> {{ now()->format('d M Y H:i') }}</p>
     </div>
 
     <table>
         <thead>
             <tr>
-                <th>SL No</th>
-                <th>Tag No</th>
+                <th>SL</th>
                 <th>Species</th>
-                <th>Original Specs (L/D/Vol)</th>
-                <th>Verification</th>
-                <th>Actual Specs (L/D/Vol)</th>
-                <th>Remarks</th>
+                <th>Origin</th>
+                <th>Log No.</th>
+                <th>DF10-Tag No.</th>
+                <th class="text-right">Length</th>
+                <th class="text-right">DIA</th>
+                <th class="text-right">Volume (CBM)</th>
+                <th>Status</th>
             </tr>
         </thead>
         <tbody>
+            @php $totalVolume = 0; @endphp
             @foreach($logs as $log)
-            <tr>
+            @php $totalVolume += $log->vol_cbm; @endphp
+            <tr class="{{ $log->inspection ? 'unloaded' : '' }}">
                 <td>{{ $log->serial_no }}</td>
-                <td>{{ $log->tag_no }}</td>
                 <td>{{ $log->species }}</td>
-                <td>
-                    {{ $log->length }}m / {{ $log->diameter }}cm <br>
-                    <strong>{{ $log->vol_cbm }} CBM</strong>
-                </td>
-                <td>
-                    @if($log->inspection && $log->inspection->is_match)
-                    <span class="matched">MATCH</span>
-                    @elseif($log->inspection)
-                    <span class="mismatched">MISMATCH</span>
-                    @else
-                    PENDING
-                    @endif
-                </td>
-                <td>
-                    @if($log->inspection && !$log->inspection->is_match)
-                    {{ $log->inspection->actual_length }}m / {{ $log->inspection->actual_diameter }}cm <br>
-                    <strong>{{ $log->inspection->actual_vol_cbm }} CBM</strong>
-                    @else
-                    -
-                    @endif
-                </td>
-                <td>
-                    {{ $log->inspection->surveyor_remarks ?? '' }}
-                </td>
+                <td>{{ $log->origin ?? '-' }}</td>
+                <td>{{ $log->log_no ?? '-' }}</td>
+                <td>{{ $log->tag_no }}</td>
+                <td class="text-right">{{ $log->length }}</td>
+                <td class="text-right">{{ $log->diameter }}</td>
+                <td class="text-right"><strong>{{ $log->vol_cbm }}</strong></td>
+                <td>{{ $log->inspection ? 'Unloaded' : 'Waiting' }}</td>
             </tr>
             @endforeach
         </tbody>
     </table>
 
+    <table class="summary">
+        <tr>
+            <td>Total Logs: {{ $logs->count() }}</td>
+            <td>Unloaded: {{ $logs->filter(fn($l) => $l->inspection)->count() }}</td>
+            <td class="text-right">Total Volume: {{ number_format($totalVolume, 3) }} CBM</td>
+        </tr>
+    </table>
+
     <div class="footer">
-        Generated by TimberLog Verify System
+        Generated by TimberLog Verify System | Confidential — For Buyer Use Only
     </div>
 </body>
 

@@ -12,8 +12,17 @@ class UserController extends Controller
 {
     public function index()
     {
+        $existingBuyerUsers = User::where('role', 'buyer')->pluck('name')->toArray();
+        $uniqueBuyers = \App\Models\Log::whereNotNull('buyer_name')
+            ->distinct()
+            ->pluck('buyer_name')
+            ->reject(function ($name) use ($existingBuyerUsers) {
+                return in_array($name, $existingBuyerUsers);
+            })->values();
+
         return Inertia::render('Admin/Users/Index', [
             'users' => User::where('id', '!=', auth()->id())->latest()->get(),
+            'unactivated_buyers' => $uniqueBuyers,
         ]);
     }
 
@@ -40,7 +49,7 @@ class UserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'email' => 'required|string|email|max:255|unique:users,email,'.$user->id,
             'role' => 'required|in:admin,surveyor,buyer',
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
         ]);

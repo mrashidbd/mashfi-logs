@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Vessel;
-use App\Models\Log;
 use App\Imports\VesselImport;
+use App\Models\Log;
+use App\Models\Vessel;
 use Illuminate\Http\Request;
-use Maatwebsite\Excel\Facades\Excel;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 class VesselController extends Controller
 {
@@ -20,36 +20,48 @@ class VesselController extends Controller
 
     public function show(Vessel $vessel)
     {
-        // "admin should be able to filter by species, origin, buyers, surveyors, survey status etc."
-        // "admin should be able to search by SL, TAG, LOG_Number"
         $query = $vessel->logs()->with('inspection.surveyor');
 
+        // Search filter (LOG# and DF10-TAG only)
         if (request('search')) {
             $search = request('search');
             $query->where(function ($q) use ($search) {
-                $q->where('serial_no', 'like', "%{$search}%")
-                    ->orWhere('tag_no', 'like', "%{$search}%")
-                    ->orWhere('log_no', 'like', "%{$search}%");
+                $q->where('log_no', 'like', "%{$search}%")
+                    ->orWhere('tag_no', 'like', "%{$search}%");
             });
         }
 
+        // Species filter
         if (request('species')) {
             $query->where('species', request('species'));
         }
 
-        if (request('buyer')) {
-            $query->where('buyer_name', 'like', "%" . request('buyer') . "%");
+        // Origin filter
+        if (request('origin')) {
+            $query->where('origin', request('origin'));
         }
 
-        // Status filter: pending (no inspection), matched, mismatched
-        if (request('status')) {
-            if (request('status') === 'pending') {
+        // Buyer filter
+        if (request('buyer')) {
+            $query->where('buyer_name', request('buyer'));
+        }
+
+        // Survey status filter: surveyed / not_surveyed
+        if (request('survey_status')) {
+            if (request('survey_status') === 'surveyed') {
+                $query->whereHas('inspection');
+            } elseif (request('survey_status') === 'not_surveyed') {
                 $query->doesntHave('inspection');
-            } elseif (request('status') === 'verified') {
+            }
+        }
+
+        // Match status filter: matched / mismatched
+        if (request('match_status')) {
+            if (request('match_status') === 'matched') {
                 $query->whereHas('inspection', function ($q) {
                     $q->where('is_match', true);
                 });
-            } elseif (request('status') === 'mismatch') {
+            } elseif (request('match_status') === 'mismatched') {
                 $query->whereHas('inspection', function ($q) {
                     $q->where('is_match', false);
                 });
@@ -59,10 +71,10 @@ class VesselController extends Controller
         return Inertia::render('Admin/Vessels/Show', [
             'vessel' => $vessel,
             'logs' => $query->paginate(50)->withQueryString(),
-            'filters' => request()->all(['search', 'species', 'buyer', 'status']),
-            // Unique values for dropdowns
+            'filters' => request()->all(['search', 'species', 'origin', 'buyer', 'survey_status', 'match_status']),
             'species_list' => $vessel->logs()->distinct()->pluck('species'),
-            'origins_list' => $vessel->logs()->distinct()->pluck('origin'),
+            'origins_list' => $vessel->logs()->whereNotNull('origin')->distinct()->pluck('origin'),
+            'buyers_list' => $vessel->logs()->whereNotNull('buyer_name')->distinct()->pluck('buyer_name'),
         ]);
     }
 
@@ -92,9 +104,6 @@ class VesselController extends Controller
         if ($request->has('surveyor_access') && $request->surveyor_access) {
             // Disable access for all other vessels
             Vessel::where('id', '!=', $vessel->id)->update(['surveyor_access' => false]);
-            // Maybe buyer access too? User said "one for surveyor access one for buyer access".
-            // "Admin can enable/open access for any ONE/Single vessel at a given time."
-            // This might imply ONLY ONE ACTIVE VESSEL globally.
         }
 
         $vessel->update($validated);
@@ -105,8 +114,10 @@ class VesselController extends Controller
     public function destroy(Vessel $vessel)
     {
         $vessel->delete(); // Cascades logs
+
         return redirect()->back();
     }
+
     // Log Management Methods
     public function storeLog(Request $request, Vessel $vessel)
     {
@@ -159,6 +170,7 @@ class VesselController extends Controller
     public function destroyLog(Log $log)
     {
         $log->delete();
+
         return back()->with('success', 'Log deleted successfully.');
     }
 }

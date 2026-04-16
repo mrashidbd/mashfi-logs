@@ -2,45 +2,144 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Vessel;
 use App\Models\Log;
+use App\Models\Vessel;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class SurveyorController extends Controller
 {
-    public function dashboard()
+    public function welcome()
     {
-        // "surveyor ... only able to see individual wood/logs/lumber items that was enabled for him by the admin"
-        // "Surveyor ... should not be able to see list of vessels of course. He only able to see ... items ... enabled for him"
-        // Actually, user said: "If there is none, he should see a message... surveyor then see details of each line"
-        // This implies he enters a vessel context first? Or just a flat list of TODOs?
-        // "admin should be able to see individual Vessel codes ... and open access for any ONE/Single vessel"
-
-        // So we find the ONE vessel with surveyor_access = true.
         $activeVessel = Vessel::where('surveyor_access', true)->first();
+
+        return Inertia::render('Surveyor/Welcome', [
+            'vessel' => $activeVessel,
+        ]);
+    }
+
+    public function search()
+    {
+        $activeVessel = Vessel::where('surveyor_access', true)->first();
+
+        if (! $activeVessel) {
+            return redirect()->route('surveyor.welcome');
+        }
+
+        return Inertia::render('Surveyor/Search', [
+            'vessel' => $activeVessel,
+        ]);
+    }
+
+    public function searchQuery(Request $request)
+    {
+        $activeVessel = Vessel::where('surveyor_access', true)->first();
+
+        if (! $activeVessel) {
+            return response()->json([]);
+        }
+
+        $query = $request->input('q', '');
+
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        $results = $activeVessel->logs()
+            ->with('inspection')
+            ->where(function ($q) use ($query) {
+                $q->where('log_no', 'like', "%{$query}%")
+                    ->orWhere('tag_no', 'like', "%{$query}%");
+            })
+            ->limit(20)
+            ->get();
+
+        return response()->json($results);
+    }
+
+    public function dashboard(Request $request)
+    {
+        $activeVessel = Vessel::where('surveyor_access', true)->first();
+
+        if (! $activeVessel) {
+            return Inertia::render('Surveyor/Dashboard', [
+                'vessel' => null,
+                'logs' => null,
+                'filters' => [],
+                'buyers_list' => [],
+                'species_list' => [],
+                'origins_list' => [],
+            ]);
+        }
+
+        $query = $activeVessel->logs()
+            ->with(['inspection' => function ($q) {
+                $q->where('surveyor_id', Auth::id());
+            }]);
+
+        // Search filter (LOG# and DF10-TAG only)
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('log_no', 'like', "%{$search}%")
+                    ->orWhere('tag_no', 'like', "%{$search}%");
+            });
+        }
+
+        // Survey status filter
+        if ($request->filled('survey_status')) {
+            if ($request->input('survey_status') === 'surveyed') {
+                $query->whereHas('inspection');
+            } elseif ($request->input('survey_status') === 'not_surveyed') {
+                $query->doesntHave('inspection');
+            }
+        }
+
+        // Match status filter
+        if ($request->filled('match_status')) {
+            if ($request->input('match_status') === 'matched') {
+                $query->whereHas('inspection', function ($q) {
+                    $q->where('is_match', true);
+                });
+            } elseif ($request->input('match_status') === 'mismatched') {
+                $query->whereHas('inspection', function ($q) {
+                    $q->where('is_match', false);
+                });
+            }
+        }
+
+        // Buyer filter
+        if ($request->filled('buyer')) {
+            $query->where('buyer_name', $request->input('buyer'));
+        }
+
+        // Species filter
+        if ($request->filled('species')) {
+            $query->where('species', $request->input('species'));
+        }
+
+        // Origin filter
+        if ($request->filled('origin')) {
+            $query->where('origin', $request->input('origin'));
+        }
 
         return Inertia::render('Surveyor/Dashboard', [
             'vessel' => $activeVessel,
-            // If active vessel exists, load its logs? Or link to logs? 
-            // "He only able to see individual wood/logs/lumber items"
-            // Let's load the logs if a vessel is active.
-            'logs' => $activeVessel
-                ? $activeVessel->logs()
-                ->with(['inspection' => function ($q) {
-                    $q->where('surveyor_id', Auth::id());
-                }])
-                ->paginate(100)
-                : null,
+            'logs' => $query->paginate(100)->withQueryString(),
+            'filters' => $request->all(['search', 'survey_status', 'match_status', 'buyer', 'species', 'origin']),
+            'buyers_list' => $activeVessel->logs()->whereNotNull('buyer_name')->distinct()->pluck('buyer_name'),
+            'species_list' => $activeVessel->logs()->distinct()->pluck('species'),
+            'origins_list' => $activeVessel->logs()->whereNotNull('origin')->distinct()->pluck('origin'),
         ]);
     }
+
     public function show(Log $log)
     {
         $log->load('vessel', 'inspection');
 
         // Ensure log belongs to active vessel
-        if (!$log->vessel->surveyor_access) {
+        if (! $log->vessel->surveyor_access) {
             abort(403, 'This vessel is not open for survey.');
         }
 
@@ -56,32 +155,36 @@ class SurveyorController extends Controller
             'is_match' => 'required|boolean',
             'shift' => 'required|in:A,B,C',
             'surveyor_remarks' => 'nullable|string',
-            'actual_length' => 'required_if:is_match,false|nullable|numeric',
-            'actual_gb' => 'required_if:is_match,false|nullable|numeric',
-            'actual_pb' => 'required_if:is_match,false|nullable|numeric',
-            'actual_diameter' => 'required_if:is_match,false|nullable|numeric',
-            'actual_l_ref' => 'nullable|numeric',
-            'actual_d_ref' => 'nullable|numeric',
-            'buyer_name' => 'nullable|string',
-            'butt_image' => 'nullable|image|max:10240', // 10MB max
+            'actual_length_ft' => 'required_if:is_match,false|nullable|integer|min:0',
+            'actual_length_in' => 'required_if:is_match,false|nullable|numeric|min:0|max:11.9',
+            'actual_mid_girth' => 'required_if:is_match,false|nullable|numeric|min:0',
+            'butt_image' => 'nullable|image|max:10240',
             'top_image' => 'nullable|image|max:10240',
         ]);
 
-        $actualVol = null;
-        if (!$validated['is_match']) {
-            $d_m = $validated['actual_diameter'] / 100; // cm to m
-            $r_m = $d_m / 2;
-            $actualVol = $validated['actual_length'] * pi() * pow($r_m, 2);
-            $actualVol = round($actualVol, 6);
+        $actualVolCft = null;
+        $actualVolCbm = null;
+
+        if (! $validated['is_match'] && isset($validated['actual_mid_girth']) && isset($validated['actual_length_ft'])) {
+            // Convert foot + inch to total feet
+            $lengthFt = (int) $validated['actual_length_ft'];
+            $lengthIn = (float) ($validated['actual_length_in'] ?? 0);
+            $totalLengthFt = $lengthFt + ($lengthIn / 12);
+
+            $midGirth = (float) $validated['actual_mid_girth'];
+
+            // Shonatoni formula: (mid_girth² × length_ft) / 2304 = CFT
+            $actualVolCft = ($midGirth * $midGirth * $totalLengthFt) / 2304;
+            $actualVolCft = round($actualVolCft, 6);
+
+            // CFT to CBM
+            $actualVolCbm = $actualVolCft / 27.74;
+            $actualVolCbm = round($actualVolCbm, 6);
         }
 
         // Handle Images
         $inspection = $log->inspection()->firstOrNew(['log_id' => $log->id]);
-
-        // Model casts 'images' => 'array', so it's already an array or null.
-        // No need to json_decode.
         $existingImages = $inspection->images ?? [];
-
         $images = $existingImages;
 
         if ($request->hasFile('butt_image')) {
@@ -101,20 +204,17 @@ class SurveyorController extends Controller
                 'surveyor_id' => Auth::id(),
                 'shift' => $validated['shift'],
                 'is_match' => $validated['is_match'],
-                'actual_length' => $validated['actual_length'] ?? null,
-                'actual_gb' => $validated['actual_gb'] ?? null,
-                'actual_pb' => $validated['actual_pb'] ?? null,
-                'actual_diameter' => $validated['actual_diameter'] ?? null,
-                'actual_vol_cbm' => $actualVol,
-                'actual_l_ref' => $validated['actual_l_ref'] ?? null,
-                'actual_d_ref' => $validated['actual_d_ref'] ?? null,
-                'buyer_name' => $validated['buyer_name'] ?? null,
-                'surveyor_remarks' => $validated['surveyor_remarks'],
-                'images' => $images, // Pass array directly, Model casts will handle JSON encoding
+                'actual_length_ft' => $validated['actual_length_ft'] ?? null,
+                'actual_length_in' => $validated['actual_length_in'] ?? null,
+                'actual_mid_girth' => $validated['actual_mid_girth'] ?? null,
+                'actual_vol_cft' => $actualVolCft,
+                'actual_vol_cbm' => $actualVolCbm,
+                'surveyor_remarks' => $validated['surveyor_remarks'] ?? null,
+                'images' => $images,
                 'verified_at' => now(),
             ]
         );
 
-        return to_route('surveyor.dashboard')->with('success', 'Log verification saved.');
+        return to_route('surveyor.search')->with('success', 'Log verification saved.');
     }
 }

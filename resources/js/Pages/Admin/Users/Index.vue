@@ -10,6 +10,10 @@ import TextInput from '@/Components/TextInput.vue';
 
 const props = defineProps({
     users: Array,
+    unactivated_buyers: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const showModal = ref(false);
@@ -100,7 +104,8 @@ const deleteUser = (user) => {
                                             {{ user.name }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                                            {{ user.email }}
+                                            <span v-if="user.email">{{ user.email }}</span>
+                                            <span v-else class="text-xs text-slate-400 italic">Unactivated (No Email)</span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
@@ -147,8 +152,31 @@ const deleteUser = (user) => {
 
                 <form @submit.prevent="submitForm" class="mt-6 space-y-4">
                     <div>
+                        <InputLabel for="role" value="Role" />
+                        <select id="role" v-model="form.role" class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="admin">Admin</option>
+                            <option value="surveyor">Surveyor</option>
+                            <option value="buyer">Buyer</option>
+                        </select>
+                        <div v-if="form.errors.role" class="text-red-500 text-sm mt-1">{{ form.errors.role }}</div>
+                    </div>
+
+                    <!-- Buyer Assignment (Only for new user creation with Buyer role) -->
+                    <div v-if="!isEditing && form.role === 'buyer'">
+                        <InputLabel value="Select Buyer Profile" />
+                        <select v-model="form.name" required class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">-- Select Buyer from Imported Data --</option>
+                            <option v-for="buyerName in unactivated_buyers" :key="buyerName" :value="buyerName">
+                                {{ buyerName }}
+                            </option>
+                        </select>
+                        <div v-if="form.errors.name" class="text-red-500 text-sm mt-1">{{ form.errors.name }}</div>
+                    </div>
+
+                    <div v-else>
                         <InputLabel for="name" value="Name" />
-                        <TextInput id="name" type="text" class="mt-1 block w-full" v-model="form.name" required />
+                        <TextInput id="name" type="text" class="mt-1 block w-full" v-model="form.name" required :readonly="isEditing && form.role === 'buyer'" :class="{'bg-slate-100 cursor-not-allowed dark:bg-slate-800 text-slate-500': isEditing && form.role === 'buyer'}" />
+                        <p v-if="isEditing && form.role === 'buyer'" class="text-xs text-slate-500 mt-1">Buyer name cannot be changed as it maps to dataset records.</p>
                         <div v-if="form.errors.name" class="text-red-500 text-sm mt-1">{{ form.errors.name }}</div>
                     </div>
 
@@ -158,15 +186,7 @@ const deleteUser = (user) => {
                         <div v-if="form.errors.email" class="text-red-500 text-sm mt-1">{{ form.errors.email }}</div>
                     </div>
 
-                    <div>
-                        <InputLabel for="role" value="Role" />
-                        <select id="role" v-model="form.role" class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="admin">Admin</option>
-                            <option value="surveyor">Surveyor</option>
-                            <option value="buyer">Buyer</option>
-                        </select>
-                        <div v-if="form.errors.role" class="text-red-500 text-sm mt-1">{{ form.errors.role }}</div>
-                    </div>
+
 
                     <div>
                          <InputLabel for="password" value="Password" />
