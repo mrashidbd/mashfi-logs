@@ -155,6 +155,7 @@ class SurveyorController extends Controller
             'is_match' => 'required|boolean',
             'shift' => 'required|in:A,B,C',
             'surveyor_remarks' => 'nullable|string',
+            'buyer_name' => 'nullable|string',
             'actual_length_ft' => 'required_if:is_match,false|nullable|integer|min:0',
             'actual_length_in' => 'required_if:is_match,false|nullable|numeric|min:0|max:11.9',
             'actual_mid_girth' => 'required_if:is_match,false|nullable|numeric|min:0',
@@ -204,6 +205,7 @@ class SurveyorController extends Controller
                 'surveyor_id' => Auth::id(),
                 'shift' => $validated['shift'],
                 'is_match' => $validated['is_match'],
+                'buyer_name' => $validated['buyer_name'] ?? null,
                 'actual_length_ft' => $validated['actual_length_ft'] ?? null,
                 'actual_length_in' => $validated['actual_length_in'] ?? null,
                 'actual_mid_girth' => $validated['actual_mid_girth'] ?? null,
@@ -215,6 +217,6 @@ class SurveyorController extends Controller
             ]
         );
 
-        return to_route('surveyor.search')->with('success', 'Log verification saved.');
+        return back()->with('success', 'Log verification saved.');
     }
 }

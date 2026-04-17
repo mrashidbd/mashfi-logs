@@ -81,7 +81,7 @@ const props = defineProps({
                     <div v-for="log in logs.data" :key="log.id" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
                         <div class="flex justify-between items-start mb-2">
                             <p class="text-lg font-mono font-extrabold text-slate-900 dark:text-white">{{ log.tag_no }}</p>
-                            <span class="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full">UNLOADED</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full">OFFLOADED</span>
                         </div>
                         <div class="grid grid-cols-4 gap-2 text-xs text-slate-500 mt-2">
                             <div>

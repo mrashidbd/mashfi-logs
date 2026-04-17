@@ -82,9 +82,10 @@ class VesselController extends Controller
     {
         $request->validate([
             'file' => 'required|mimes:xlsx,xls,csv',
+            'vessel_name' => 'required|string|max:255',
         ]);
 
-        Excel::import(new VesselImport, $request->file('file'));
+        Excel::import(new VesselImport($request->input('vessel_name')), $request->file('file'));
 
         return redirect()->back()->with('success', 'Vessel log imported successfully.');
     }
@@ -123,17 +124,18 @@ class VesselController extends Controller
     {
         $validated = $request->validate([
             'serial_no' => 'required|string',
-            'tag_no' => 'required|string',
             'log_no' => 'nullable|string',
+            'tag_no' => 'required|string',
             'species' => 'required|string',
             'origin' => 'nullable|string',
             'length' => 'required|numeric',
-            'girth_butt' => 'required|numeric',
-            'girth_top' => 'required|numeric',
-            'diameter' => 'required|numeric',
-            'vol_cbm' => 'required|numeric',
+            'girth_butt' => 'nullable|numeric',
+            'girth_top' => 'nullable|numeric',
+            'diameter' => 'nullable|numeric',
             'l_ref' => 'nullable|numeric',
             'd_ref' => 'nullable|numeric',
+            'calc_length' => 'nullable|numeric',
+            'vol_cbm' => 'required|numeric',
             'buyer_name' => 'nullable|string',
             'remarks' => 'nullable|string',
         ]);
@@ -147,17 +149,18 @@ class VesselController extends Controller
     {
         $validated = $request->validate([
             'serial_no' => 'required|string',
-            'tag_no' => 'required|string',
             'log_no' => 'nullable|string',
+            'tag_no' => 'required|string',
             'species' => 'required|string',
             'origin' => 'nullable|string',
             'length' => 'required|numeric',
-            'girth_butt' => 'required|numeric',
-            'girth_top' => 'required|numeric',
-            'diameter' => 'required|numeric',
-            'vol_cbm' => 'required|numeric',
+            'girth_butt' => 'nullable|numeric',
+            'girth_top' => 'nullable|numeric',
+            'diameter' => 'nullable|numeric',
             'l_ref' => 'nullable|numeric',
             'd_ref' => 'nullable|numeric',
+            'calc_length' => 'nullable|numeric',
+            'vol_cbm' => 'required|numeric',
             'buyer_name' => 'nullable|string',
             'remarks' => 'nullable|string',
         ]);

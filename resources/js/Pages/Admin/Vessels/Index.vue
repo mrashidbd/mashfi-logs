@@ -14,7 +14,10 @@ const props = defineProps({
 
 const form = useForm({
     file: null,
+    vessel_name: '',
 });
+
+const showVesselNameModal = ref(false);
 
 const uploadInput = ref(null);
 const isDragging = ref(false);
@@ -38,7 +41,14 @@ const triggerFileInput = () => {
     uploadInput.value.click();
 };
 
+const promptVesselName = () => {
+    if (!form.file) return;
+    showVesselNameModal.value = true;
+};
+
 const submitImport = () => {
+    if (!form.vessel_name.trim()) return;
+    showVesselNameModal.value = false;
     form.post(route('vessels.store'), {
         onSuccess: () => {
             form.reset();
@@ -124,7 +134,7 @@ const formatDate = (dateString) => {
                         <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
                     </div>
                     <div class="p-6">
-                        <form @submit.prevent="submitImport" class="flex flex-col gap-5">
+                        <form @submit.prevent="promptVesselName" class="flex flex-col gap-5">
                             <div 
                                 class="relative border-2 border-dashed rounded-sm p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer group"
                                 :class="[
@@ -173,7 +183,8 @@ const formatDate = (dateString) => {
                                 </div>
                             </div>
 
-                            <div v-if="form.errors.file" class="text-red-500 text-xs font-mono uppercase tracking-wide border border-red-200 bg-red-50 p-3 rounded-sm">{{ form.errors.file }}</div>
+                            <div v-if="form.errors.file" class="text-red-500 text-xs font-mono uppercase tracking-wide border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-3 rounded-sm">{{ form.errors.file }}</div>
+                            <div v-if="form.errors.vessel_name" class="text-red-500 text-xs font-mono uppercase tracking-wide border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-3 rounded-sm">{{ form.errors.vessel_name }}</div>
 
                             <div class="flex justify-end">
                                 <button 
@@ -355,6 +366,36 @@ const formatDate = (dateString) => {
                 </div>
             </div>
         </div>
+
+        <!-- Vessel Name Modal (before import) -->
+        <Modal :show="showVesselNameModal" @close="showVesselNameModal = false">
+            <div class="p-8 dark:bg-slate-900 dark:text-slate-200 border-t-4 border-emerald-500">
+                <h2 class="text-xl font-extrabold uppercase tracking-tight text-slate-900 dark:text-slate-100">
+                    Name This Vessel
+                </h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">Enter a name for this vessel/shipment before importing the dataset.</p>
+                <div class="h-px bg-slate-200 dark:bg-slate-800 my-4"></div>
+
+                <div class="space-y-4">
+                    <div>
+                        <InputLabel for="import_vessel_name" value="Vessel Name" class="font-mono text-xs uppercase tracking-widest text-slate-600 dark:text-slate-400 mb-1" />
+                        <TextInput id="import_vessel_name" type="text" class="mt-1 block w-full rounded-sm border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 shadow-none font-bold text-lg" v-model="form.vessel_name" placeholder="e.g. MV Timber Star" required autofocus />
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-800 rounded-sm p-3 border border-slate-200 dark:border-slate-700">
+                        <p class="text-xs font-mono text-slate-500"><span class="font-bold text-slate-700 dark:text-slate-300">File:</span> {{ form.file?.name }}</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                    <button type="button" @click="showVesselNameModal = false" class="px-6 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                        Cancel
+                    </button>
+                    <button type="button" @click="submitImport" :disabled="form.processing || !form.vessel_name.trim()" class="px-6 py-2 bg-emerald-600 text-white text-xs font-bold uppercase tracking-widest hover:bg-emerald-700 hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        {{ form.processing ? 'Importing...' : 'Start Import' }}
+                    </button>
+                </div>
+            </div>
+        </Modal>
 
          <!-- Edit Vessel Modal -->
         <Modal :show="showEditModal" @close="closeEditModal">

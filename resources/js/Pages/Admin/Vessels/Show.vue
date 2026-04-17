@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import { debounce } from 'lodash';
+
 import Modal from '@/Components/Modal.vue'; 
 import ViewLogModal from './Partials/ViewLogModal.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
@@ -32,6 +33,10 @@ const originFilter = ref(props.filters.origin || '');
 const buyerFilter = ref(props.filters.buyer || '');
 const surveyStatusFilter = ref(props.filters.survey_status || '');
 const matchStatusFilter = ref(props.filters.match_status || '');
+
+const hasActiveFilters = computed(() => {
+    return search.value || speciesFilter.value || originFilter.value || buyerFilter.value || surveyStatusFilter.value || matchStatusFilter.value;
+});
 
 const applyFilters = () => {
     router.get(route('vessels.show', props.vessel.id), { 
@@ -82,12 +87,19 @@ const form = useForm({
     girth_butt: '',
     girth_top: '',
     diameter: '',
-    vol_cbm: '',
     l_ref: '',
     d_ref: '',
+    calc_length: '',
+    vol_cbm: '',
     buyer_name: '',
     remarks: '',
 });
+
+const fmt = (val, digits = 2) => {
+    if (val === null || val === undefined || val === '') return '-';
+    return parseFloat(val).toFixed(digits);
+};
+const fmtVol = (val) => fmt(val, 3);
 
 const openAddModal = () => {
     isEditing.value = false;
@@ -115,6 +127,7 @@ const populateForm = (log) => {
     form.vol_cbm = log.vol_cbm;
     form.l_ref = log.l_ref ?? '';
     form.d_ref = log.d_ref ?? '';
+    form.calc_length = log.calc_length ?? '';
     form.buyer_name = log.buyer_name ?? '';
     form.remarks = log.remarks ?? '';
 };
@@ -206,32 +219,32 @@ const deleteLog = (logId) => {
                             >
                         </div>
                         <div>
-                            <select v-model="speciesFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors">
+                            <select v-model="speciesFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors">
                                 <option value="">ALL SPECIES</option>
                                 <option v-for="s in species_list" :key="s" :value="s">{{ s }}</option>
                             </select>
                         </div>
                         <div>
-                            <select v-model="originFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors">
+                            <select v-model="originFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors">
                                 <option value="">ALL ORIGINS</option>
                                 <option v-for="o in origins_list" :key="o" :value="o">{{ o }}</option>
                             </select>
                         </div>
                         <div>
-                            <select v-model="buyerFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors">
+                            <select v-model="buyerFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors">
                                 <option value="">ALL BUYERS</option>
                                 <option v-for="b in buyers_list" :key="b" :value="b">{{ b }}</option>
                             </select>
                         </div>
                         <div>
-                            <select v-model="surveyStatusFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors uppercase">
+                            <select v-model="surveyStatusFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors uppercase">
                                 <option value="">ALL SURVEY</option>
                                 <option value="surveyed">SURVEYED</option>
                                 <option value="not_surveyed">NOT SURVEYED</option>
                             </select>
                         </div>
                         <div>
-                            <select v-model="matchStatusFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors uppercase">
+                            <select v-model="matchStatusFilter" @change="applyFilters" class="w-full h-10 rounded-sm border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 text-sm font-mono focus:border-slate-800 focus:ring-0 shadow-none transition-colors uppercase">
                                 <option value="">ALL RESULT</option>
                                 <option value="matched">MATCHED</option>
                                 <option value="mismatched">MISMATCHED</option>
@@ -246,53 +259,43 @@ const deleteLog = (logId) => {
                         <table class="min-w-full text-left border-collapse table-fixed">
                             <thead>
                                 <tr class="bg-slate-50 dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800">
-                                    <th class="w-16 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">SN</th>
-                                    <th class="w-20 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Log #</th>
-                                    <th class="w-32 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Tag Ref</th>
-                                    <th class="w-28 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Species</th>
-                                    <th class="w-28 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Origin</th>
-                                    <th class="w-24 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider text-right">Length</th>
-                                    <th class="w-24 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider text-right">Dia</th>
-                                    <th class="w-28 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider text-right">CBM</th>
-                                    <th class="w-28 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">Buyer</th>
-                                    <th class="w-28 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider text-center">State</th>
-                                    <th class="w-24 px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase tracking-wider text-right">IO</th>
+                                    <th class="w-14 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">SN</th>
+                                    <th class="w-16 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">LOG#</th>
+                                    <th class="w-28 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">TAG REF</th>
+                                    <th class="w-24 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">SPECIES</th>
+                                    <th class="w-24 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">ORIGIN</th>
+                                    <th class="w-20 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider text-right">LENGTH</th>
+                                    <th class="w-14 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider text-right">DIA</th>
+                                    <th class="w-14 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider text-right">D.REF</th>
+                                    <th class="w-16 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider text-right">C.LEN</th>
+                                    <th class="w-20 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider text-right">Volume (CBM)</th>
+                                    <th class="w-24 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">BUYER</th>
+                                    <th class="w-20 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider text-center">STATE</th>
+                                    <th class="w-20 px-3 py-3 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider text-right">IO</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                                 <tr v-for="log in logs.data" :key="log.id" class="group hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-800 dark:text-slate-300 transition-colors">
-                                    <td class="px-4 py-3 text-xs font-mono tracking-tighter">{{ log.serial_no }}</td>
-                                    <td class="px-4 py-3 text-xs font-mono text-slate-500">{{ log.log_no }}</td>
-                                    <td class="px-4 py-3 text-sm font-mono font-bold tracking-tighter" :title="log.tag_no">{{ log.tag_no }}</td>
-                                    <td class="px-4 py-3 text-sm font-semibold truncate uppercase tracking-wide" :title="log.species">{{ log.species }}</td>
-                                    <td class="px-4 py-3 text-xs font-mono text-slate-500 uppercase truncate" :title="log.origin">{{ log.origin }}</td>
-                                    
-                                    <!-- Length with L.REF indicator -->
-                                    <td class="px-4 py-3 text-right">
-                                        <div class="text-xs font-mono font-semibold">{{ log.length }}</div>
-                                        <div v-if="log.l_ref" class="text-[10px] font-mono font-bold text-red-500 mt-0.5">
-                                            -{{ log.l_ref }}
-                                        </div>
+                                    <td class="px-3 py-2.5 text-xs font-mono tracking-tighter">{{ log.serial_no }}</td>
+                                    <td class="px-3 py-2.5 text-xs font-mono text-slate-500">{{ log.log_no || '-' }}</td>
+                                    <td class="px-3 py-2.5 text-sm font-mono font-bold tracking-tighter" :title="log.tag_no">{{ log.tag_no }}</td>
+                                    <td class="px-3 py-2.5 text-xs font-semibold truncate uppercase tracking-wide" :title="log.species">{{ log.species }}</td>
+                                    <td class="px-3 py-2.5 text-xs font-mono text-slate-500 uppercase truncate" :title="log.origin">{{ log.origin || '-' }}</td>
+                                    <td class="px-3 py-2.5 text-right text-xs font-mono font-semibold">
+                                        {{ fmt(log.length) }}
+                                        <span v-if="log.l_ref" class="text-red-500 text-[10px] ml-0.5">-{{ fmt(log.l_ref) }}</span>
                                     </td>
+                                    <td class="px-3 py-2.5 text-right text-xs font-mono font-semibold">{{ fmt(log.diameter) }}</td>
+                                    <td class="px-3 py-2.5 text-right text-[10px] font-mono text-red-500">{{ log.d_ref ? fmt(log.d_ref) : '-' }}</td>
+                                    <td class="px-3 py-2.5 text-right text-xs font-mono">{{ fmt(log.calc_length) }}</td>
 
-                                    <!-- Dia with D.REF indicator -->
-                                    <td class="px-4 py-3 text-right">
-                                        <div class="text-xs font-mono font-semibold">{{ log.diameter }}</div>
-                                        <div v-if="log.d_ref" class="text-[10px] font-mono font-bold text-red-500 mt-0.5">
-                                            -{{ log.d_ref }}
-                                        </div>
-                                    </td>
-
-                                    <!-- Volume Check -->
-                                    <td class="px-4 py-3 text-right">
-                                        <div class="text-xs font-mono font-bold text-slate-900 dark:text-slate-100">{{ log.vol_cbm }}</div>
-                                        <div v-if="log.inspection && !log.inspection.is_match && log.inspection.actual_vol_cbm" class="text-[10px] font-mono font-bold text-red-500 bg-red-50 dark:bg-red-900/20 mt-1 rounded-sm px-1">
-                                            ACT: {{ log.inspection.actual_vol_cbm }}
-                                        </div>
+                                    <!-- Volume -->
+                                    <td class="px-3 py-2.5 text-right">
+                                        <div class="text-xs font-mono font-bold text-slate-900 dark:text-slate-100">{{ fmtVol(log.vol_cbm) }}</div>
                                     </td>
 
                                     <!-- Buyer -->
-                                    <td class="px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-400 truncate" :title="log.buyer_name">{{ log.buyer_name || '-' }}</td>
+                                    <td class="px-3 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400 truncate" :title="log.buyer_name">{{ log.buyer_name || '-' }}</td>
 
                                     <td class="px-4 py-3 text-center">
                                         <span v-if="!log.inspection" class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold font-mono tracking-widest uppercase rounded border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
@@ -328,7 +331,7 @@ const deleteLog = (logId) => {
                                     </td>
                                 </tr>
                                 <tr v-if="logs.data.length === 0">
-                                    <td colspan="11" class="px-6 py-12 text-center text-sm font-mono text-slate-400 select-none">
+                                    <td colspan="13" class="px-6 py-12 text-center text-sm font-mono text-slate-400 select-none">
                                         > NO DATA MATCHES CURRENT QUERY
                                     </td>
                                 </tr>

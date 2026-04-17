@@ -85,7 +85,7 @@ const clearSearch = () => {
                         type="text"
                         inputmode="search"
                         placeholder="Enter LOG# or DF10-TAG..."
-                        class="w-full pl-14 pr-12 py-4 text-lg font-mono bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl shadow-sm focus:border-amber-500 focus:ring-amber-500 dark:focus:border-amber-500 transition placeholder:text-slate-400"
+                        class="w-full pl-14 pr-12 py-4 text-lg font-mono bg-white dark:bg-slate-800 dark:text-slate-100 border-2 border-slate-200 dark:border-slate-700 rounded-xl shadow-sm focus:border-amber-500 focus:ring-amber-500 dark:focus:border-amber-500 transition placeholder:text-slate-400"
                         autofocus
                     >
                     <button

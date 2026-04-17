@@ -15,6 +15,7 @@ const form = useForm({
     actual_length_in: props.log.inspection?.actual_length_in || '',
     actual_mid_girth: props.log.inspection?.actual_mid_girth || '',
     surveyor_remarks: props.log.inspection?.surveyor_remarks || '',
+    buyer_name: props.log.inspection?.buyer_name || null,
     butt_image: null,
     top_image: null,
 });
@@ -28,21 +29,22 @@ const calculatedVolCft = computed(() => {
     const midGirth = parseFloat(form.actual_mid_girth) || 0;
 
     if (totalFt > 0 && midGirth > 0) {
-        return ((midGirth * midGirth * totalFt) / 2304).toFixed(4);
+        return ((midGirth * midGirth * totalFt) / 2304).toFixed(3);
     }
-    return '0.0000';
+    return '0.000';
 });
 
 const calculatedVolCbm = computed(() => {
-    if (form.is_match) return props.log.vol_cbm;
+    if (form.is_match) return parseFloat(props.log.vol_cbm).toFixed(3);
     const cft = parseFloat(calculatedVolCft.value);
     if (cft > 0) {
-        return (cft / 27.74).toFixed(6);
+        return (cft / 27.74).toFixed(3);
     }
-    return '0.000000';
+    return '0.000';
 });
 
 const showShiftModal = ref(false);
+const showSuccess = ref(false);
 
 onMounted(() => {
     const savedShift = localStorage.getItem('surveyor_shift');
@@ -50,7 +52,9 @@ onMounted(() => {
         if (!props.log.inspection) {
             form.shift = savedShift;
         }
-    } else {
+    }
+    // Show shift modal once per login session (sessionStorage clears on browser close / logout)
+    if (!sessionStorage.getItem('shift_prompted')) {
         showShiftModal.value = true;
     }
 });
@@ -59,12 +63,24 @@ const selectShift = (shift) => {
     const shiftLetter = shift.match(/SHIFT ([ABC])/)?.[1] || shift;
     form.shift = shiftLetter;
     localStorage.setItem('surveyor_shift', shiftLetter);
+    sessionStorage.setItem('shift_prompted', '1');
     showShiftModal.value = false;
+};
+
+const setNilBuyer = () => {
+    form.buyer_name = 'NIL-BUYER';
 };
 
 const submit = () => {
     form.post(route('inspections.store', props.log.id), {
-        onSuccess: () => {},
+        onSuccess: () => {
+            showSuccess.value = true;
+            setTimeout(() => {
+                showSuccess.value = false;
+                // Navigate back to previous screen (index or search)
+                window.history.back();
+            }, 2000);
+        },
         onError: (errors) => {
             console.error('Validation errors:', errors);
         },
@@ -73,12 +89,41 @@ const submit = () => {
 
 // Existing images from previous inspection
 const existingImages = computed(() => props.log.inspection?.images || {});
+
+const fmt = (val, digits = 2) => {
+    if (val === null || val === undefined || val === '') return '-';
+    return parseFloat(val).toFixed(digits);
+};
 </script>
 
 <template>
     <Head title="Inspect Log" />
 
     <AuthenticatedLayout>
+
+        <!-- Success Overlay -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transition ease-out duration-300"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition ease-in duration-200"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div v-if="showSuccess" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-10 max-w-sm w-full mx-4 text-center animate-bounce-once">
+                        <div class="w-20 h-20 mx-auto bg-emerald-100 dark:bg-emerald-900/40 rounded-full flex items-center justify-center mb-5">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-10 text-emerald-600 dark:text-emerald-400">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white mb-2">Inspection Saved!</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Log <span class="font-mono font-bold text-amber-600 dark:text-amber-400">{{ log.tag_no }}</span> has been recorded successfully.</p>
+                    </div>
+                </div>
+            </Transition>
+        </Teleport>
 
         <div class="pt-4 pb-32">
             <div class="max-w-md mx-auto px-4 sm:px-6">
@@ -112,7 +157,7 @@ const existingImages = computed(() => props.log.inspection?.images || {});
                         <div v-if="showShiftModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm">
                             <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-sm w-full p-6">
                                 <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Select Session Shift</h3>
-                                <p class="text-sm text-slate-500 mb-6">Please select your working shift for this session.</p>
+                                <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Please select your working shift for this session.</p>
 
                                 <div class="space-y-3">
                                     <button
@@ -171,20 +216,34 @@ const existingImages = computed(() => props.log.inspection?.images || {});
 
                                 <!-- Measurements -->
                                 <div class="bg-white dark:bg-slate-950/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
-                                    <div class="grid grid-cols-2 gap-y-3 gap-x-4">
+                                    <div class="grid grid-cols-3 gap-3">
                                         <div>
                                             <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Length</div>
                                             <div class="font-semibold text-slate-800 dark:text-gray-200">
-                                                {{ log.length }}
-                                                <span v-if="log.l_ref" class="text-red-500 text-xs font-mono ml-1">-{{ log.l_ref }}</span>
+                                                {{ fmt(log.length) }}
+                                                <span v-if="log.l_ref" class="text-red-500 text-xs font-mono ml-1">-{{ fmt(log.l_ref) }}</span>
                                             </div>
                                         </div>
                                         <div>
                                             <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">DIA</div>
                                             <div class="font-semibold text-slate-800 dark:text-gray-200">
-                                                {{ log.diameter }}
-                                                <span v-if="log.d_ref" class="text-red-500 text-xs font-mono ml-1">-{{ log.d_ref }}</span>
+                                                {{ fmt(log.diameter) }}
+                                                <span v-if="log.d_ref" class="text-red-500 text-xs font-mono ml-1">-{{ fmt(log.d_ref) }}</span>
                                             </div>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Calc.Len</div>
+                                            <div class="font-semibold text-slate-800 dark:text-gray-200 font-mono">{{ fmt(log.calc_length) }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                                        <div>
+                                            <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">GB</div>
+                                            <div class="font-semibold text-slate-800 dark:text-gray-200 font-mono">{{ fmt(log.girth_butt) }}</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">PB</div>
+                                            <div class="font-semibold text-slate-800 dark:text-gray-200 font-mono">{{ fmt(log.girth_top) }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -193,15 +252,30 @@ const existingImages = computed(() => props.log.inspection?.images || {});
                                 <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
                                     <div class="flex justify-between items-center">
                                         <div class="text-xs uppercase tracking-wide text-green-700 dark:text-green-400 font-bold">Volume (CBM)</div>
-                                        <div class="text-xl font-bold text-green-800 dark:text-green-300">{{ log.vol_cbm }} <span class="text-sm font-normal">m³</span></div>
+                                        <div class="text-xl font-bold text-green-800 dark:text-green-300">{{ fmt(log.vol_cbm, 3) }} <span class="text-sm font-normal">m³</span></div>
                                     </div>
                                 </div>
 
                                 <!-- Buyer -->
-                                <div v-if="log.buyer_name" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                                    <div class="flex items-center justify-between">
-                                        <div class="text-xs uppercase tracking-wide text-blue-700 dark:text-blue-400 font-bold">Buyer</div>
-                                        <div class="font-semibold text-blue-900 dark:text-blue-300">{{ log.buyer_name }}</div>
+                                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div>
+                                            <div class="text-xs uppercase tracking-wide text-blue-700 dark:text-blue-400 font-bold">Buyer</div>
+                                            <div class="font-semibold text-blue-900 dark:text-blue-300 mt-0.5">
+                                                <span v-if="form.buyer_name === 'NIL-BUYER'" class="text-red-600 dark:text-red-400 font-bold">NIL-BUYER</span>
+                                                <span v-else>{{ log.buyer_name || 'N/A' }}</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            @click="setNilBuyer"
+                                            class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide rounded-lg transition"
+                                            :class="form.buyer_name === 'NIL-BUYER'
+                                                ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700'
+                                                : 'bg-blue-100 dark:bg-blue-800/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 hover:bg-blue-200 dark:hover:bg-blue-800/60'"
+                                        >
+                                            {{ form.buyer_name === 'NIL-BUYER' ? '✓ NIL-BUYER' : 'Set NIL-BUYER' }}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -254,20 +328,20 @@ const existingImages = computed(() => props.log.inspection?.images || {});
                                     <div>
                                         <span class="text-slate-400">Length</span>
                                         <div class="font-mono font-bold text-slate-700 dark:text-slate-300">
-                                            {{ log.length }}
-                                            <span v-if="log.l_ref" class="text-red-500 text-[10px] block">-{{ log.l_ref }}</span>
+                                            {{ fmt(log.length) }}
+                                            <span v-if="log.l_ref" class="text-red-500 text-[10px] block">-{{ fmt(log.l_ref) }}</span>
                                         </div>
                                     </div>
                                     <div>
                                         <span class="text-slate-400">DIA</span>
                                         <div class="font-mono font-bold text-slate-700 dark:text-slate-300">
-                                            {{ log.diameter }}
-                                            <span v-if="log.d_ref" class="text-red-500 text-[10px] block">-{{ log.d_ref }}</span>
+                                            {{ fmt(log.diameter) }}
+                                            <span v-if="log.d_ref" class="text-red-500 text-[10px] block">-{{ fmt(log.d_ref) }}</span>
                                         </div>
                                     </div>
                                     <div>
                                         <span class="text-slate-400">Vol CBM</span>
-                                        <div class="font-mono font-bold text-slate-700 dark:text-slate-300">{{ log.vol_cbm }}</div>
+                                        <div class="font-mono font-bold text-slate-700 dark:text-slate-300">{{ fmt(log.vol_cbm, 3) }}</div>
                                     </div>
                                 </div>
                             </div>

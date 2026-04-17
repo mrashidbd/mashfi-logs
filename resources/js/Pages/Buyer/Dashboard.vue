@@ -14,8 +14,8 @@ const props = defineProps({
         <template #header>
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 class="font-extrabold text-xl text-slate-900 dark:text-white">Daily Unloading Progress</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">View unloading progress by date</p>
+                    <h2 class="font-extrabold text-xl text-slate-900 dark:text-white">Daily OFFLOADING Progress</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">View offloading progress by date</p>
                 </div>
                 <Link :href="route('buyer.index')" class="px-5 py-2.5 bg-blue-600 text-white font-bold text-sm rounded-lg hover:bg-blue-700 transition shadow-sm">
                     View Full Inventory
@@ -30,7 +30,7 @@ const props = defineProps({
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-12 mx-auto text-slate-300 dark:text-slate-600 mb-4">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                     </svg>
-                    <p class="text-slate-500 dark:text-slate-400 font-semibold">No unloading data available yet.</p>
+                    <p class="text-slate-500 dark:text-slate-400 font-semibold">No offloading data available yet.</p>
                     <p class="text-xs text-slate-400 mt-1">Survey results will appear here once logs are inspected.</p>
                 </div>
 
@@ -60,6 +60,7 @@ const props = defineProps({
                                     <div>
                                         <p class="font-mono font-bold text-sm text-slate-900 dark:text-white">{{ log.tag_no }}</p>
                                         <p class="text-xs text-slate-500 uppercase">{{ log.species }}</p>
+                                        <p class="text-[10px] text-slate-400 font-mono mt-0.5">LOG#: {{ log.log_no || '-' }} · L: {{ log.length }} · D: {{ log.diameter }}</p>
                                     </div>
                                     <div class="text-right">
                                         <p class="font-mono font-bold text-sm text-slate-700 dark:text-slate-300">{{ log.vol_cbm }}</p>

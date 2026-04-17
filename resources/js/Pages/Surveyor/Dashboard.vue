@@ -74,21 +74,21 @@ watch(search, (val) => debouncedSearch(val));
                                     class="w-full h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-sm font-mono focus:border-amber-500 focus:ring-amber-500 placeholder:text-slate-400"
                                 />
                             </div>
-                            <select v-model="surveyStatus" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-sm font-mono focus:border-amber-500 focus:ring-0">
+                            <select v-model="surveyStatus" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 text-sm font-mono focus:border-amber-500 focus:ring-0">
                                 <option value="">All Status</option>
                                 <option value="surveyed">Surveyed</option>
                                 <option value="not_surveyed">Not Surveyed</option>
                             </select>
-                            <select v-model="matchStatus" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-sm font-mono focus:border-amber-500 focus:ring-0">
+                            <select v-model="matchStatus" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 text-sm font-mono focus:border-amber-500 focus:ring-0">
                                 <option value="">All Result</option>
                                 <option value="matched">Matched</option>
                                 <option value="mismatched">Mismatched</option>
                             </select>
-                            <select v-model="speciesFilter" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-sm font-mono focus:border-amber-500 focus:ring-0">
+                            <select v-model="speciesFilter" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 text-sm font-mono focus:border-amber-500 focus:ring-0">
                                 <option value="">All Species</option>
                                 <option v-for="s in species_list" :key="s" :value="s">{{ s }}</option>
                             </select>
-                            <select v-model="buyerFilter" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-sm font-mono focus:border-amber-500 focus:ring-0">
+                            <select v-model="buyerFilter" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 text-sm font-mono focus:border-amber-500 focus:ring-0">
                                 <option value="">All Buyers</option>
                                 <option v-for="b in buyers_list" :key="b" :value="b">{{ b }}</option>
                             </select>
@@ -107,7 +107,7 @@ watch(search, (val) => debouncedSearch(val));
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase">Species</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-right">Length</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-right">DIA</th>
-                                        <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-right">CBM</th>
+                                        <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-right">Volume (CBM)</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-center">Status</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-center">Action</th>
                                     </tr>
@@ -118,15 +118,15 @@ watch(search, (val) => debouncedSearch(val));
                                         <td class="px-4 py-3 text-sm font-mono font-bold text-slate-900 dark:text-white">{{ log.tag_no }}</td>
                                         <td class="px-4 py-3 text-xs font-mono text-slate-500">{{ log.log_no || '-' }}</td>
                                         <td class="px-4 py-3 text-sm font-semibold uppercase text-slate-700 dark:text-slate-300">{{ log.species }}</td>
-                                        <td class="px-4 py-3 text-right text-xs font-mono">
+                                        <td class="px-4 py-3 text-right text-xs font-mono dark:text-slate-300">
                                             {{ log.length }}
                                             <span v-if="log.l_ref" class="text-red-500 text-[10px] ml-0.5">-{{ log.l_ref }}</span>
                                         </td>
-                                        <td class="px-4 py-3 text-right text-xs font-mono">
+                                        <td class="px-4 py-3 text-right text-xs font-mono dark:text-slate-300">
                                             {{ log.diameter }}
                                             <span v-if="log.d_ref" class="text-red-500 text-[10px] ml-0.5">-{{ log.d_ref }}</span>
                                         </td>
-                                        <td class="px-4 py-3 text-right text-xs font-mono font-bold">{{ log.vol_cbm }}</td>
+                                        <td class="px-4 py-3 text-right text-xs font-mono font-bold dark:text-slate-300">{{ parseFloat(log.vol_cbm).toFixed(3) }}</td>
                                         <td class="px-4 py-3 text-center">
                                             <span v-if="!log.inspection" class="inline-flex px-2 py-0.5 text-[10px] font-bold font-mono uppercase rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600">PENDING</span>
                                             <span v-else-if="log.inspection.is_match" class="inline-flex px-2 py-0.5 text-[10px] font-bold font-mono uppercase rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">✓ MATCH</span>
@@ -166,7 +166,7 @@ watch(search, (val) => debouncedSearch(val));
                                 <div class="flex items-center gap-3 text-xs text-slate-500">
                                     <span class="font-bold uppercase text-slate-700 dark:text-slate-300">{{ log.species }}</span>
                                     <span>{{ log.length }}m × {{ log.diameter }}cm</span>
-                                    <span class="font-bold">{{ log.vol_cbm }} CBM</span>
+                                    <span class="font-bold">{{ parseFloat(log.vol_cbm).toFixed(3) }} CBM</span>
                                 </div>
                             </div>
                         </Link>

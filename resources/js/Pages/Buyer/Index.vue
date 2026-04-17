@@ -55,7 +55,7 @@ const openPreview = (images) => {
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 class="font-extrabold text-xl text-slate-900 dark:text-white">My Inventory</h2>
-                    <p class="text-xs text-slate-500 font-mono mt-0.5">{{ vessel?.vessel_name || 'No active shipment' }}</p>
+                    <p class="text-xs text-slate-500 font-mono mt-0.5">{{ vessel ? 'Active Shipment' : 'No active shipment' }}</p>
                 </div>
                 <div class="flex gap-2">
                     <Link :href="route('buyer.dashboard')" class="px-4 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-lg hover:bg-slate-50 transition">
@@ -86,7 +86,7 @@ const openPreview = (images) => {
                             <p class="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">{{ stats.total }}</p>
                         </div>
                         <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
-                            <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Unloaded</p>
+                            <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Offloaded</p>
                             <p class="text-2xl font-extrabold text-emerald-700 dark:text-emerald-400 mt-1">{{ stats.unloaded }}</p>
                             <div class="mt-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
                                 <div class="bg-emerald-500 h-1.5 rounded-full transition-all" :style="{ width: progressPercent + '%' }"></div>
@@ -111,16 +111,16 @@ const openPreview = (images) => {
                                     class="w-full h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-sm font-mono focus:border-blue-500 focus:ring-blue-500 placeholder:text-slate-400"
                                 />
                             </div>
-                            <select v-model="unloadStatus" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-sm font-mono focus:border-blue-500 focus:ring-0">
+                            <select v-model="unloadStatus" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 text-sm font-mono focus:border-blue-500 focus:ring-0">
                                 <option value="">All Items</option>
                                 <option value="unloaded">Unloaded</option>
                                 <option value="not_unloaded">Waiting</option>
                             </select>
-                            <select v-model="speciesFilter" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-sm font-mono focus:border-blue-500 focus:ring-0">
+                            <select v-model="speciesFilter" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 text-sm font-mono focus:border-blue-500 focus:ring-0">
                                 <option value="">All Species</option>
                                 <option v-for="s in species_list" :key="s" :value="s">{{ s }}</option>
                             </select>
-                            <select v-model="originFilter" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-sm font-mono focus:border-blue-500 focus:ring-0">
+                            <select v-model="originFilter" @change="applyFilters" class="h-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 text-sm font-mono focus:border-blue-500 focus:ring-0">
                                 <option value="">All Origins</option>
                                 <option v-for="o in origins_list" :key="o" :value="o">{{ o }}</option>
                             </select>
@@ -140,7 +140,7 @@ const openPreview = (images) => {
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase">Origin</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-right">Length</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-right">DIA</th>
-                                        <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-right">CBM</th>
+                                        <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-right">Volume (CBM)</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-center">Status</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-center">Photos</th>
                                     </tr>
@@ -157,13 +157,13 @@ const openPreview = (images) => {
                                         <td class="px-4 py-3 text-xs font-mono text-slate-500">{{ log.log_no || '-' }}</td>
                                         <td class="px-4 py-3 text-sm font-semibold uppercase text-slate-700 dark:text-slate-300">{{ log.species }}</td>
                                         <td class="px-4 py-3 text-xs text-slate-500 uppercase">{{ log.origin || '-' }}</td>
-                                        <td class="px-4 py-3 text-right text-xs font-mono font-semibold">{{ log.length }}</td>
-                                        <td class="px-4 py-3 text-right text-xs font-mono font-semibold">{{ log.diameter }}</td>
-                                        <td class="px-4 py-3 text-right text-xs font-mono font-bold">{{ log.vol_cbm }}</td>
+                                        <td class="px-4 py-3 text-right text-xs font-mono font-semibold dark:text-slate-300">{{ parseFloat(log.length).toFixed(2) }}</td>
+                                        <td class="px-4 py-3 text-right text-xs font-mono font-semibold dark:text-slate-300">{{ parseFloat(log.diameter).toFixed(2) }}</td>
+                                        <td class="px-4 py-3 text-right text-xs font-mono font-bold dark:text-slate-300">{{ parseFloat(log.vol_cbm).toFixed(3) }}</td>
                                         <td class="px-4 py-3 text-center">
                                             <span v-if="log.inspection" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                Unloaded
+                                                Offloaded
                                             </span>
                                             <span v-else class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
@@ -206,7 +206,7 @@ const openPreview = (images) => {
                                         <p class="text-lg font-mono font-extrabold text-slate-900 dark:text-white">{{ log.tag_no }}</p>
                                         <p class="text-xs text-slate-500 font-mono">SN: {{ log.serial_no }} | LOG#: {{ log.log_no || '-' }}</p>
                                     </div>
-                                    <span v-if="log.inspection" class="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full">UNLOADED</span>
+                                    <span v-if="log.inspection" class="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full">OFFLOADED</span>
                                     <span v-else class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-full">WAITING</span>
                                 </div>
                                 <div class="grid grid-cols-4 gap-2 text-xs text-slate-500 mt-2">
@@ -224,7 +224,7 @@ const openPreview = (images) => {
                                     </div>
                                     <div>
                                         <span class="block text-[10px] uppercase font-bold text-slate-400">CBM</span>
-                                        <span class="font-mono font-extrabold text-slate-900 dark:text-white">{{ log.vol_cbm }}</span>
+                                        <span class="font-mono font-extrabold text-slate-900 dark:text-white">{{ parseFloat(log.vol_cbm).toFixed(3) }}</span>
                                     </div>
                                 </div>
                                 <!-- Image thumbnails -->

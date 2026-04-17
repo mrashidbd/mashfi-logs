@@ -11,6 +11,30 @@ use Inertia\Inertia;
 
 class BuyerController extends Controller
 {
+    public function welcome()
+    {
+        $buyerName = Auth::user()->name;
+        $activeVessel = Vessel::where('buyer_access', true)->first();
+
+        $stats = [
+            'total_logs' => 0,
+            'offloaded' => 0,
+            'total_volume' => '0.000',
+        ];
+
+        if ($activeVessel) {
+            $logsQuery = $activeVessel->logs()->where('buyer_name', $buyerName);
+            $stats['total_logs'] = $logsQuery->count();
+            $stats['offloaded'] = (clone $logsQuery)->whereHas('inspection')->count();
+            $stats['total_volume'] = number_format($logsQuery->sum('vol_cbm'), 3);
+        }
+
+        return Inertia::render('Buyer/Welcome', [
+            'activeVessel' => $activeVessel,
+            'stats' => $stats,
+        ]);
+    }
+
     public function dashboard()
     {
         $buyerName = Auth::user()->name;
@@ -108,7 +132,6 @@ class BuyerController extends Controller
         return Inertia::render('Buyer/Index', [
             'vessel' => [
                 'id' => $activeVessel->id,
-                'vessel_name' => $activeVessel->vessel_name ?? 'Shipment #'.$activeVessel->id,
                 'arrival_date' => $activeVessel->arrival_date,
             ],
             'logs' => $query->paginate(50)->withQueryString(),
@@ -145,7 +168,6 @@ class BuyerController extends Controller
         return Inertia::render('Buyer/Show', [
             'vessel' => [
                 'id' => $vessel->id,
-                'vessel_name' => $vessel->vessel_name ?? 'Shipment #'.$vessel->id,
                 'arrival_date' => $vessel->arrival_date,
                 'is_complete' => $vessel->logs()->where('buyer_name', $buyerName)->count() == $vessel->logs()->where('buyer_name', $buyerName)->whereHas('inspection')->count(),
             ],
@@ -163,6 +185,7 @@ class BuyerController extends Controller
 
         $logs = $vessel->logs()
             ->where('buyer_name', $buyerName)
+            ->with('inspection')
             ->get();
 
         $pdf = Pdf::loadView('reports.vessel-pdf', [

@@ -49,6 +49,13 @@ const showingNavigationDropdown = ref(false);
                                 </NavLink>
                                 <NavLink
                                     v-if="$page.props.auth.user.role === 'admin'"
+                                    :href="route('admin.survey-data')"
+                                    :active="route().current('admin.survey-data')"
+                                >
+                                    Survey Data
+                                </NavLink>
+                                <NavLink
+                                    v-if="$page.props.auth.user.role === 'admin'"
                                     :href="route('users.index')"
                                     :active="route().current('users.index')"
                                 >
