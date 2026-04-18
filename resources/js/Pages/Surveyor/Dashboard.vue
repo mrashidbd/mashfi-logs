@@ -108,6 +108,7 @@ watch(search, (val) => debouncedSearch(val));
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-right">Length</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-right">DIA</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-right">Volume (CBM)</th>
+                                        <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase">Buyer</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-center">Status</th>
                                         <th class="px-4 py-3 text-xs font-mono font-bold text-slate-500 uppercase text-center">Action</th>
                                     </tr>
@@ -127,6 +128,7 @@ watch(search, (val) => debouncedSearch(val));
                                             <span v-if="log.d_ref" class="text-red-500 text-[10px] ml-0.5">-{{ log.d_ref }}</span>
                                         </td>
                                         <td class="px-4 py-3 text-right text-xs font-mono font-bold dark:text-slate-300">{{ parseFloat(log.vol_cbm).toFixed(3) }}</td>
+                                        <td class="px-4 py-3 text-xs font-mono dark:text-slate-300">{{ log.buyer_name || '-' }}</td>
                                         <td class="px-4 py-3 text-center">
                                             <span v-if="!log.inspection" class="inline-flex px-2 py-0.5 text-[10px] font-bold font-mono uppercase rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600">PENDING</span>
                                             <span v-else-if="log.inspection.is_match" class="inline-flex px-2 py-0.5 text-[10px] font-bold font-mono uppercase rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">✓ MATCH</span>
@@ -137,7 +139,7 @@ watch(search, (val) => debouncedSearch(val));
                                         </td>
                                     </tr>
                                     <tr v-if="!logs?.data?.length">
-                                        <td colspan="9" class="px-6 py-12 text-center text-sm text-slate-400">No logs match filters</td>
+                                        <td colspan="10" class="px-6 py-12 text-center text-sm text-slate-400">No logs match filters</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -167,6 +169,7 @@ watch(search, (val) => debouncedSearch(val));
                                     <span class="font-bold uppercase text-slate-700 dark:text-slate-300">{{ log.species }}</span>
                                     <span>{{ log.length }}m × {{ log.diameter }}cm</span>
                                     <span class="font-bold">{{ parseFloat(log.vol_cbm).toFixed(3) }} CBM</span>
+                                    <span v-if="log.buyer_name" class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-[10px] font-bold text-slate-600 dark:text-slate-400">{{ log.buyer_name }}</span>
                                 </div>
                             </div>
                         </Link>
